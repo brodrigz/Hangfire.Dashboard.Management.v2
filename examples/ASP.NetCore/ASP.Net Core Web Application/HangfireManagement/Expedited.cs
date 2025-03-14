@@ -78,6 +78,10 @@ namespace ASP.Net_Core_Web_Application.HangfireManagement
 			)] bool blInput,
 
 			[DisplayData(
+				Label = "Custom Class Input"
+			)] TestClass customClass,
+
+			[DisplayData(
 				Label = "Select Input",
 				DefaultValue = TestEnum.Test5,
 				Description = "Based on an enum object"
@@ -94,6 +98,54 @@ namespace ASP.Net_Core_Web_Application.HangfireManagement
 			Test3,
 			Test4 = 44,
 			Test5
+		}
+
+		public class TestClass
+		{
+			[DisplayData(
+				Label = "Class String",
+				Description = "This is the description text",
+				DefaultValue = "This is the Default Value"
+			)]
+			public string TestString { get; set; }
+
+			[DisplayData(
+				Label = "Nested Custom Class"
+			)]
+			public NestedClass Nested { get; set; }
+
+			[DisplayData(
+				Label = "Class Integer",
+				Description = "This is the description text",
+				DefaultValue = "2"
+			)]
+			public int TestInt { get; set; }
+		}
+
+		public class NestedClass
+		{
+			[DisplayData(
+				Label = "Nested String",
+				Description = "This is the description text",
+				DefaultValue = "This is the Default Value"
+			)]
+			public string TestString { get; set; }
+
+			[DisplayData(
+				Label = "Nested Boolean Input",
+				DefaultValue = true,
+				Description = "This is a boolean input"
+			)]
+			public bool BlInput { get; set; }
+
+			[DisplayData(
+				Label = "Nested DateTime Input",
+				Placeholder = "What is the date and time?",
+				DefaultValue = "01/20/2020 1:02 AM",
+				Description = "This is a date time input control"
+			//ControlConfiguration = dateTimeOptions
+			)]
+			public DateTime DtInput { get; set; }
 		}
 	}
 }
