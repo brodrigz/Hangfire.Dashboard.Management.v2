@@ -17,6 +17,8 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 		public IEnumerable<Func<RazorPage, MenuItem>> Items { get; }
 		public readonly string JobId;
 		public readonly JobMetadata Job;
+		public readonly HashSet<Type> NestedTypes = new HashSet<Type>();
+
 		public JobPartial(string id, JobMetadata job)
 		{
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -78,6 +80,13 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 						data.Add(Enum.GetName(parameterInfo.ParameterType, v), v.ToString());
 					}
 					inputs += InputDataList(myId, displayInfo.CssClasses, labelText, placeholderText, displayInfo.Description, data, displayInfo.DefaultValue?.ToString(), displayInfo.IsDisabled);
+				}
+				else if (parameterInfo.ParameterType.IsClass)
+				{
+					inputs += $"<div class=\"panel panel-default\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{myId}\" aria-expanded=\"false\" aria-controls=\"collapse_{myId}\"><h4 class=\"panel-title\">{labelText}</h4></div><div id=\"collapse_{myId}\" class=\"panel-collapse collapse\"><div class=\"panel-body\">";
+					NestedTypes.Add(parameterInfo.ParameterType);
+					inputs += InputNested(myId, parameterInfo.ParameterType);
+					NestedTypes.Remove(parameterInfo.ParameterType);
 				}
 				else
 				{
@@ -207,5 +216,65 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 
 			return output;
 		}
+
+		protected string InputNested(string parentId, Type parentType)
+		{
+			string input = string.Empty;
+
+			foreach (var propertyInfo in parentType.GetProperties()
+				.Where(prop => Attribute.IsDefined(prop, typeof(DisplayDataAttribute))))
+			{
+				var propId = $"{parentId}_{propertyInfo.Name}";
+				var propDisplayInfo = propertyInfo.GetCustomAttribute<DisplayDataAttribute>() ?? new DisplayDataAttribute();
+
+				var propLabelText = propDisplayInfo?.Label ?? propertyInfo.Name;
+				var propPlaceholderText = propDisplayInfo?.Placeholder ?? propertyInfo.Name;
+
+				if (propertyInfo.PropertyType == typeof(string))
+				{
+					input += InputTextbox(propId, propDisplayInfo.CssClasses, propLabelText, propPlaceholderText, propDisplayInfo.Description, propDisplayInfo.DefaultValue, propDisplayInfo.IsDisabled, propDisplayInfo.IsRequired, propDisplayInfo.IsMultiLine);
+				}
+				else if (propertyInfo.PropertyType == typeof(int))
+				{
+					input += InputNumberbox(propId, propDisplayInfo.CssClasses, propLabelText, propPlaceholderText, propDisplayInfo.Description, propDisplayInfo.DefaultValue, propDisplayInfo.IsDisabled, propDisplayInfo.IsRequired);
+				}
+				else if (propertyInfo.PropertyType == typeof(Uri))
+				{
+					input += Input(propId, propDisplayInfo.CssClasses, propLabelText, propPlaceholderText, propDisplayInfo.Description, "url", propDisplayInfo.DefaultValue, propDisplayInfo.IsDisabled, propDisplayInfo.IsRequired);
+				}
+				else if (propertyInfo.PropertyType == typeof(DateTime))
+				{
+					input += InputDatebox(propId, propDisplayInfo.CssClasses, propLabelText, propPlaceholderText, propDisplayInfo.Description, propDisplayInfo.DefaultValue, propDisplayInfo.IsDisabled, propDisplayInfo.IsRequired, propDisplayInfo.ControlConfiguration);
+				}
+				else if (propertyInfo.PropertyType == typeof(bool))
+				{
+					input += "<br/>" + InputCheckbox(propId, propDisplayInfo.CssClasses, propLabelText, propPlaceholderText, propDisplayInfo.Description, propDisplayInfo.DefaultValue, propDisplayInfo.IsDisabled);
+				}
+				else if (propertyInfo.PropertyType.IsEnum)
+				{
+					var data = new Dictionary<string, string>();
+					foreach (int v in Enum.GetValues(propertyInfo.PropertyType))
+					{
+						data.Add(Enum.GetName(propertyInfo.PropertyType, v), v.ToString());
+					}
+					input += InputDataList(propId, propDisplayInfo.CssClasses, propLabelText, propPlaceholderText, propDisplayInfo.Description, data, propDisplayInfo.DefaultValue?.ToString(), propDisplayInfo.IsDisabled);
+				}
+				else if (propertyInfo.PropertyType.IsClass)
+				{
+					if (!NestedTypes.Add(propertyInfo.PropertyType)) { input += null;  continue; } //Circular reference, not allowed -> null
+					input += $"<div class=\"panel panel-default\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{propId}\" aria-expanded=\"false\" aria-controls=\"collapse_{propId}\"><h4 class=\"panel-title\">{propLabelText}</h4></div><div id=\"collapse_{propId}\" class=\"panel-collapse collapse\"><div class=\"panel-body\">";
+					input += InputNested(propId, propertyInfo.PropertyType);
+					NestedTypes.Remove(propertyInfo.PropertyType);
+				}
+				else
+				{
+					input += InputTextbox(propId, propDisplayInfo.CssClasses, propLabelText, propPlaceholderText, propDisplayInfo.Description, propDisplayInfo.DefaultValue, propDisplayInfo.IsDisabled, propDisplayInfo.IsRequired);
+				}
+			}
+
+			input += "</div></div></div>";
+			return input;
+		}
+
 	}
 }

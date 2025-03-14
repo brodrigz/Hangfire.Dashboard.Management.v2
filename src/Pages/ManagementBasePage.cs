@@ -56,6 +56,8 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 					var id = GetFormVariable("id");
 					var type = GetFormVariable("type");
 
+					HashSet<Type> nestedTypes = new HashSet<Type>();
+
 					foreach (var parameterInfo in jobMetadata.MethodInfo.GetParameters())
 					{
 						if (parameterInfo.ParameterType == typeof(PerformContext) || parameterInfo.ParameterType == typeof(IJobCancellationToken))
@@ -115,6 +117,12 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 						else if (parameterInfo.ParameterType == typeof(bool))
 						{
 							item = formInput == "on";
+						}
+						else if (parameterInfo.ParameterType.IsClass)
+						{
+							nestedTypes.Add(parameterInfo.ParameterType);
+							item = ProcessNestedParameters(variable, parameterInfo.ParameterType, GetFormVariable, nestedTypes, out errorMessage);
+							nestedTypes.Remove(parameterInfo.ParameterType);
 						}
 						else if (!parameterInfo.ParameterType.IsValueType)
 						{
@@ -259,6 +267,115 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 					return false;
 				}));
 			}
+		}
+
+		private static object ProcessNestedParameters(string parentId, Type parentType, Func<string, string> GetFormVariable, HashSet<Type> nestedTypes, out string errorMessage)
+		{ 
+			errorMessage = null;
+			object instance;
+
+			try
+			{
+				instance = Activator.CreateInstance(parentType);
+			}
+			catch
+			{
+				errorMessage = $"Unable to create instance of {parentType.Name}";
+				return null;
+			}
+
+			foreach (var propertyInfo in parentType.GetProperties().Where(prop => Attribute.IsDefined(prop, typeof(DisplayDataAttribute))))
+		    {
+		        var propId = $"{parentId}_{propertyInfo.Name}";
+				var propDisplayInfo = propertyInfo.GetCustomAttribute<DisplayDataAttribute>();
+				var propLabel = propDisplayInfo.Label ?? propertyInfo.Name;
+
+				if (propertyInfo.PropertyType == typeof(DateTime))
+				{
+					propId = $"{propId}_datetimepicker";
+				}
+
+				var formInput = GetFormVariable(propId);
+				
+				if (propertyInfo.PropertyType == typeof(string))
+				{
+					propertyInfo.SetValue(instance, formInput);
+            		if (propDisplayInfo.IsRequired && string.IsNullOrWhiteSpace((string)formInput))
+            		{
+            		    errorMessage = $"{propLabel} is required.";
+            		    break;
+            		}
+				}
+        		else if (propertyInfo.PropertyType == typeof(int))
+        		{
+        		    if (int.TryParse(formInput, out int intValue))
+        		    {
+        		        propertyInfo.SetValue(instance, intValue);
+        		    }
+        		    else
+        		    {
+        		        errorMessage = $"{propLabel} was not in a correct format.";
+        		        break;
+        		    }
+				}
+				else if (propertyInfo.PropertyType == typeof(DateTime))
+        		{
+					var dateTimeValue = formInput == null ? DateTime.MinValue : DateTime.Parse(formInput, null, DateTimeStyles.RoundtripKind);
+					propertyInfo.SetValue(instance, dateTimeValue);
+					if (propDisplayInfo.IsRequired && dateTimeValue.Equals(DateTime.MinValue))
+					{
+						errorMessage = $"{propLabel} is required.";
+						break;
+					}
+        		}
+        		else if (propertyInfo.PropertyType == typeof(bool))
+        		{
+        		    propertyInfo.SetValue(instance, formInput == "on");
+        		}
+				else if (propertyInfo.PropertyType.IsEnum)
+				{
+					try
+					{
+						var enumValue = Enum.Parse(propertyInfo.PropertyType, formInput);
+						propertyInfo.SetValue(instance, enumValue);
+					}
+					catch (Exception e)
+					{
+						errorMessage = $"{propLabel} was not in a correct format: {e.Message}";
+						break;
+					}
+				}
+				else if (propertyInfo.PropertyType.IsClass)
+        		{
+					if(!nestedTypes.Add(propertyInfo.PropertyType)){ continue; } //Circular reference, not allowed
+					var nestedInstance = ProcessNestedParameters(propId, propertyInfo.PropertyType, GetFormVariable, nestedTypes, out errorMessage);
+					nestedTypes.Remove(propertyInfo.PropertyType);
+
+					propertyInfo.SetValue(instance, nestedInstance);
+        		}
+				else if (!propertyInfo.PropertyType.IsValueType)
+				{
+					if (formInput == null || formInput.Length == 0)
+					{
+						propertyInfo.SetValue(instance, null);
+						if (propDisplayInfo.IsRequired)
+						{
+							errorMessage = $"{propLabel} is required.";
+							break;
+						}
+					}
+					else
+					{
+						propertyInfo.SetValue(instance, JsonConvert.DeserializeObject(formInput, propertyInfo.PropertyType));
+					}
+				}
+				else
+				{
+					propertyInfo.SetValue(instance, formInput);
+				}
+			}
+
+			return instance;
 		}
 	}
 }
