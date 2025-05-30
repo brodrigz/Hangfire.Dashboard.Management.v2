@@ -32,7 +32,10 @@ namespace Hangfire.Dashboard.Management.v2.Support
 					if (!Pages.Any(x => x.MenuName == menuName)) Pages.Add(mgmtPageAttr);
 				}
 
-				foreach (var methodInfo in ti.GetMethods().Where(m => m.DeclaringType == ti))
+				foreach (var methodInfo in ti.GetMethods()
+					.Where(m => m.DeclaringType == ti)
+					.Where(x => x.GetCustomAttribute<IgnoreMethodAttribute>() == null)
+					)
 				{
 					var meta = new JobMetadata { Type = ti, Queue = q, SectionTitle = title, MenuName = menuName };
 
