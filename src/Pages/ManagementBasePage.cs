@@ -270,7 +270,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 		}
 
 		private static object ProcessNestedParameters(string parentId, Type parentType, Func<string, string> GetFormVariable, HashSet<Type> nestedTypes, out string errorMessage)
-		{ 
+		{
 			errorMessage = null;
 			object instance;
 
@@ -285,41 +285,41 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 			}
 
 			foreach (var propertyInfo in parentType.GetProperties().Where(prop => Attribute.IsDefined(prop, typeof(DisplayDataAttribute))))
-		    {
-		        var propId = $"{parentId}_{propertyInfo.Name}";
+			{
+				var propId = $"{parentId}_{propertyInfo.Name}";
 				var propDisplayInfo = propertyInfo.GetCustomAttribute<DisplayDataAttribute>();
 				var propLabel = propDisplayInfo.Label ?? propertyInfo.Name;
 
-				if (propertyInfo.PropertyType == typeof(DateTime))
+				if (propertyInfo.PropertyType == typeof(DateTime) || propertyInfo.PropertyType == typeof(Nullable<DateTime>))
 				{
 					propId = $"{propId}_datetimepicker";
 				}
 
 				var formInput = GetFormVariable(propId);
-				
+
 				if (propertyInfo.PropertyType == typeof(string))
 				{
 					propertyInfo.SetValue(instance, formInput);
-            		if (propDisplayInfo.IsRequired && string.IsNullOrWhiteSpace((string)formInput))
-            		{
-            		    errorMessage = $"{propLabel} is required.";
-            		    break;
-            		}
+					if (propDisplayInfo.IsRequired && string.IsNullOrWhiteSpace((string)formInput))
+					{
+						errorMessage = $"{propLabel} is required.";
+						break;
+					}
 				}
-        		else if (propertyInfo.PropertyType == typeof(int))
-        		{
-        		    if (int.TryParse(formInput, out int intValue))
-        		    {
-        		        propertyInfo.SetValue(instance, intValue);
-        		    }
-        		    else
-        		    {
-        		        errorMessage = $"{propLabel} was not in a correct format.";
-        		        break;
-        		    }
+				else if (propertyInfo.PropertyType == typeof(int) || propertyInfo.PropertyType == typeof(Nullable<int>))
+				{
+					if (int.TryParse(formInput, out int intValue))
+					{
+						propertyInfo.SetValue(instance, intValue);
+					}
+					else
+					{
+						errorMessage = $"{propLabel} was not in a correct format.";
+						break;
+					}
 				}
-				else if (propertyInfo.PropertyType == typeof(DateTime))
-        		{
+				else if (propertyInfo.PropertyType == typeof(DateTime) || propertyInfo.PropertyType == typeof(Nullable<DateTime>))
+				{
 					var dateTimeValue = formInput == null ? DateTime.MinValue : DateTime.Parse(formInput, null, DateTimeStyles.RoundtripKind);
 					propertyInfo.SetValue(instance, dateTimeValue);
 					if (propDisplayInfo.IsRequired && dateTimeValue.Equals(DateTime.MinValue))
@@ -327,11 +327,11 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 						errorMessage = $"{propLabel} is required.";
 						break;
 					}
-        		}
-        		else if (propertyInfo.PropertyType == typeof(bool))
-        		{
-        		    propertyInfo.SetValue(instance, formInput == "on");
-        		}
+				}
+				else if (propertyInfo.PropertyType == typeof(bool) || propertyInfo.PropertyType == typeof(Nullable<bool>))
+				{
+					propertyInfo.SetValue(instance, formInput == "on");
+				}
 				else if (propertyInfo.PropertyType.IsEnum)
 				{
 					try
@@ -346,13 +346,13 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 					}
 				}
 				else if (propertyInfo.PropertyType.IsClass)
-        		{
-					if(!nestedTypes.Add(propertyInfo.PropertyType)){ continue; } //Circular reference, not allowed
+				{
+					if (!nestedTypes.Add(propertyInfo.PropertyType)) { continue; } //Circular reference, not allowed
 					var nestedInstance = ProcessNestedParameters(propId, propertyInfo.PropertyType, GetFormVariable, nestedTypes, out errorMessage);
 					nestedTypes.Remove(propertyInfo.PropertyType);
 
 					propertyInfo.SetValue(instance, nestedInstance);
-        		}
+				}
 				else if (!propertyInfo.PropertyType.IsValueType)
 				{
 					if (formInput == null || formInput.Length == 0)
