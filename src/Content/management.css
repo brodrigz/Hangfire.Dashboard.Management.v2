@@ -20,9 +20,9 @@
 	display: flex;
 }
 
-.hdm-show-metadata pre {
-	margin-bottom: 0px;
-}
+	.hdm-show-metadata pre {
+		margin-bottom: 0px;
+	}
 
 .tempus-dominus-widget {
 	width: 30rem;
@@ -32,9 +32,58 @@
 	margin-right: 0.5rem;
 }
 
+
 @media (prefers-color-scheme: dark) {
 	.panel, .well {
-		/*background-color: transparent;*/
+		background-color: #ffffff0a;
+	}
+
+	.panel-info > .panel-heading {
+		color: #adbac7;
+		background-color: #d9edf729;
+		border-color: #bce8f154;
+	}
+
+	.panel-info {
+		border-color: #bce8f14f;
+	}
+
+	.well {
+		border: 1px solid #e3e3e30f;
+	}
+
+	.text-muted {
+		color: #adbabe;
+	}
+
+	.form-control[disabled], .form-control[readonly], fieldset[disabled] .form-control {
+		background-color: #00000014;
+		opacity: 1;
+	}
+
+	.form-control {
+		border: 1px solid #cccccc29;
+		background-color: #202429;
+		color: #cccccc;
+	}
+
+	.btn-default {
+		background: #202429;
+	}
+
+	.panel-footer {
+		background-color: #474d55;
+		border-top: 1px solid #dddddd66;
+	}
+
+	.panel-default > .panel-heading {
+		color: #a9c4cd;
+		background-color: #474d55;
+		border-color: #dddddd00;
+	}
+
+	.panel-default {
+		border-color: #dddddd8c;
 	}
 }
 
