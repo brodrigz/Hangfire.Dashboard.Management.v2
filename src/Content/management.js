@@ -88,6 +88,28 @@
 				var $this = $(this);
 				var id = $this.data("id");
 
+				//handler for implementation selector dropdown
+                $(this).on('click', '.impl-selector-options .option', function (e) {
+                    e.preventDefault();
+                    var $option = $(this);
+                    var optionText = $option.data('optiontext');
+					var optionValue = $this.data('optionvalue');
+                    var targetPanelId = $option.data('target-panel-id');
+                    
+                    var optionsId = $option.closest('ul.impl-selector-options').data('optionsid');
+                    var $button = $('#' + optionsId + '.hdm-impl-selector-button', container);
+
+                    $button.find('.input-data-list-text').text(optionText);
+                    $button.data('selectedvalue', optionValue); 
+
+                    $('.impl-panels-for-' + optionsId, container).addClass('d-none');
+
+                    if (targetPanelId) {
+						var $targetPanel = $('#' + targetPanelId, container);
+						$targetPanel.removeClass('d-none');
+                    }
+                });
+
 				$(this).on('click', '.data-list-options .option',
 					function (e) {
 						e.preventDefault();

@@ -91,6 +91,108 @@ namespace ASP.Net_Core_Web_Application.HangfireManagement
 			//Do awesome things here
 		}
 
+		[DisplayName("Job Number 2")] //C
+		[Description("This is the description for Job Number 1")] //D
+		[Queue("default")]
+		[AllowMultiple]
+		[ShowMetaData(true)]
+		[AutomaticRetry]
+		public void Job2(PerformContext context, IJobCancellationToken token,
+			[DisplayData(
+				Label = "Choose your own implementation",
+				Description = "This is an interface",
+				DefaultValue = "ConcreteClassB"
+			)]
+			IInterfaceTest interfaceInput
+		)
+		{
+			//Do awesome things here
+			Console.WriteLine($"Common: {interfaceInput.InterfaceString}");
+			Console.WriteLine($"Common: {interfaceInput.InterfaceMethod()}");
+
+			switch (interfaceInput)
+			{
+				case ConcreteClassA a:
+					Console.WriteLine($"A: {a.DataMemberA}");
+					Console.WriteLine($"B: {a.InterfaceMethod()}");
+					break;
+				case ConcreteClassB b:
+					Console.WriteLine($"B from I: {interfaceInput.InterfaceString}");
+					Console.WriteLine($"B from I: {interfaceInput.InterfaceMethod()}");
+					Console.WriteLine($"B: {b.DataMemberB}");
+
+					if (b.NestedInterface != null)
+					{
+						Console.WriteLine($"B nest: {b.NestedInterface.InterfaceString}");
+					}
+					break;
+				default:
+					Console.WriteLine("Unknown implementation");
+					break;
+			}
+
+		}
+
+		public class ConcreteClassA : IInterfaceTest
+		{
+
+			[DisplayData(
+				Label = "Data Member (data)",
+				Description = "data member"
+			)]
+			public DateTime DataMemberA { get; set; }
+
+			[DisplayData(
+				Label = "String from Interface",
+				Description = "Inherited data member"
+			)]
+			public string InterfaceString { get; set; }
+
+			public string InterfaceMethod()
+			{
+				return $"Hello From A: {DataMemberA.Date}";
+			}
+
+		}
+
+		public class ConcreteClassB : IInterfaceTest
+		{
+
+			[DisplayData(
+				Label = "Data Member (integer)",
+				Description = "Data member"
+			)]
+			public int DataMemberB { get; set; }
+
+			[DisplayData(
+				Label = "Choose your own concrete implementation",
+				Description = "Circular references are not enabled. You can only pick concrete classes that are not circular."
+			)]
+			public IInterfaceTest NestedInterface { get; set; }
+
+			[DisplayData(
+				Label = "String from Interface",
+				Description = "Inherited data member"
+			)]
+			public string InterfaceString { get; set; }
+
+			public string InterfaceMethod()
+			{
+				return $"Hello From B: {DataMemberB}";
+			}
+		}
+
+
+		public interface IInterfaceTest
+		{
+			string InterfaceString { get; set; }
+
+			string InterfaceMethod()
+			{
+				return $"Interface Method: {InterfaceString}";
+			}
+		}
+
 		public enum TestEnum
 		{
 			Test1,
