@@ -86,7 +86,24 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 						var formInput = GetFormVariable(variable);
 
 						object item = null;
-						if (parameterInfo.ParameterType == typeof(string))
+
+						if (parameterInfo.ParameterType.IsInterface)
+						{
+							if (!VT.Implementations.ContainsKey(parameterInfo.ParameterType)) { errorMessage = $"{displayInfo.Label ?? parameterInfo.Name} is not a valid interface type or is not registered in VT."; break; }
+							VT.Implementations.TryGetValue(parameterInfo.ParameterType, out HashSet<Type> impls);
+							var impl = impls.FirstOrDefault(concrete => concrete.FullName == GetFormVariable($"{id}_{parameterInfo.Name}"));
+
+							if (impl == null)
+							{
+								errorMessage = $"{impl.FullName} is not a valid concrete type of {parameterInfo.ParameterType} or is not registered in VT.";
+								break;
+							}
+
+							nestedTypes.Add(impl);
+							item = ProcessNestedParameters($"{variable}_{impl.Name}", impl, GetFormVariable, nestedTypes, out errorMessage);
+							nestedTypes.Remove(impl);
+						}
+						else if (parameterInfo.ParameterType == typeof(string))
 						{
 							item = formInput;
 							if (displayInfo.IsRequired && string.IsNullOrWhiteSpace((string)item))
@@ -296,8 +313,28 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 				}
 
 				var formInput = GetFormVariable(propId);
-				
-				if (propertyInfo.PropertyType == typeof(string))
+
+				if (propertyInfo.PropertyType.IsInterface)
+				{
+					if (!VT.Implementations.ContainsKey(propertyInfo.PropertyType)) { errorMessage = $"{propDisplayInfo.Label ?? propertyInfo.Name} is not a valid interface type or is not registered in VT."; break; }
+					VT.Implementations.TryGetValue(propertyInfo.PropertyType, out HashSet<Type> impls);
+					var filteredImpls = new HashSet<Type>(impls.Where(impl => !nestedTypes.Contains(impl)));
+
+					var choosedImpl = impls.FirstOrDefault(concrete => concrete.FullName == GetFormVariable($"{propId}"));
+					
+					if (choosedImpl == null)
+					{
+						errorMessage = $"cannot find a valid concrete type of {propertyInfo.PropertyType} or is not registered in VT.";
+						break;
+					}
+
+					nestedTypes.Add(choosedImpl);
+					var nestedInstance = ProcessNestedParameters($"{propId}_{choosedImpl.Name}", choosedImpl, GetFormVariable, nestedTypes, out errorMessage);
+					nestedTypes.Remove(choosedImpl);
+						
+					propertyInfo.SetValue(instance, nestedInstance);
+				}
+				else if (propertyInfo.PropertyType == typeof(string))
 				{
 					propertyInfo.SetValue(instance, formInput);
             		if (propDisplayInfo.IsRequired && string.IsNullOrWhiteSpace((string)formInput))

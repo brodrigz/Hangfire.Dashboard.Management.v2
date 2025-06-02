@@ -22,6 +22,7 @@ namespace Hangfire.Dashboard.Management.v2
 		public static IGlobalConfiguration UseManagementPages(this IGlobalConfiguration config, Assembly assembly, ClientSideConfigurations configOptions = null)
 		{
 			JobsHelper.GetAllJobs(assembly);
+			VT.SetAllImplementations(assembly);
 			InitStandard(configOptions);
 			return config;
 		}
@@ -30,6 +31,7 @@ namespace Hangfire.Dashboard.Management.v2
 			foreach (var assembly in assemblies)
 			{
 				JobsHelper.GetAllJobs(assembly);
+				VT.SetAllImplementations(assembly);
 			}
 			InitStandard(configOptions);
 			return config;
