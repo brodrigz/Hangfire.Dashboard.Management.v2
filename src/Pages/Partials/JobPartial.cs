@@ -52,18 +52,18 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 				var labelText = displayInfo?.Label ?? parameterInfo.Name;
 				var placeholderText = displayInfo?.Placeholder ?? parameterInfo.Name;
 				var myId = $"{JobId}_{parameterInfo.Name}";
-				
-				if(parameterInfo.ParameterType.IsInterface)
+
+				if (parameterInfo.ParameterType.IsInterface)
 				{
 					if (!VT.Implementations.ContainsKey(parameterInfo.ParameterType)) { inputs += $"<span>No concrete implementation of \"{parameterInfo.ParameterType}\" found in the current assembly.</span>"; continue; }
 
 					var impls = VT.Implementations[parameterInfo.ParameterType];
 
-					if (impls.Count == 1)
+					if (false/*impls.Count == 1*/)
 					{
 						var implType = impls.First();
 						NestedTypes.Add(implType);
-						inputs += $"<div class=\"panel panel-default\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{myId}_{implType.Name}\" aria-expanded=\"false\" 	aria-controls=\"collapse_{myId}_{implType.Name}\"><h4 class=\"panel-title\">{implType.Name} {parameterInfo.Name}</h4></div><div id=\"collapse_{myId}_{implType.Name}\" class=\"panel-collapse collapse\"><div 	class=\"panel-body\">";
+						inputs += $"<div class=\"panel panel-default\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{myId}_{implType.Name}\" aria-expanded=\"false\" 	aria-controls=\"collapse_{myId}_{implType.Name}\"><h4 class=\"panel-title\">{parameterInfo.GetDisplayName()} -> {implType.GetDisplayName()}</h4></div><div id=\"collapse_{myId}_{implType.Name}\" class=\"panel-collapse collapse\"><div 	class=\"panel-body\">";
 						inputs += InputNested($"{myId}_{implType.Name}", implType);
 						NestedTypes.Remove(implType);
 					}
@@ -80,7 +80,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 							NestedTypes.Add(impl);
 							string dNone = defaultValue != null && impl.Name == defaultValue ? "" : "d-none";
 
-							inputs += $"<div id=\"{myId}_{impl.Name}\" class=\"panel panel-default impl-panels-for-{myId} {dNone}\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{myId}_{impl.Name}\" aria-expanded=\"false\" 	aria-controls=\"collapse_{myId}_{impl.Name}\"><h4 class=\"panel-title\">{impl.Name} {parameterInfo.Name}</h4></div><div id=\"collapse_{myId}_{impl.Name}\" 	class=\"panel-collapse collapse\"><div 	class=\"panel-body\">";
+							inputs += $"<div id=\"{myId}_{impl.Name}\" class=\"panel panel-default impl-panels-for-{myId} {dNone}\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{myId}_{impl.Name}\" aria-expanded=\"false\" 	aria-controls=\"collapse_{myId}_{impl.Name}\"><h4 class=\"panel-title\">{parameterInfo.GetDisplayName()} -> {impl.GetDisplayName()}</h4></div><div id=\"collapse_{myId}_{impl.Name}\" 	class=\"panel-collapse collapse\"><div 	class=\"panel-body\">";
 							inputs += InputNested($"{myId}_{impl.Name}", impl);
 							NestedTypes.Remove(impl);
 						}
@@ -250,9 +250,9 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 
 			return output;
 		}
-		
-        protected string InputImplsList(string id, string cssClasses, string labelText, string placeholderText, string descriptionText, HashSet<Type> impls, string defaultValue = null, bool isDisabled = false)
-        {
+
+		protected string InputImplsList(string id, string cssClasses, string labelText, string placeholderText, string descriptionText, HashSet<Type> impls, string defaultValue = null, bool isDisabled = false)
+		{
 			var initText = "Select a value";
 			var initValue = "";
 
@@ -263,7 +263,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 				initValue = initTextImpl.FullName;
 			}
 
-            var output = $@"
+			var output = $@"
             <div class= form-group ""{cssClasses}"">
                 <label class=""control-label"">{labelText}</label>
                 <div class=""dropdown"">
@@ -272,14 +272,14 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
                         <span class=""caret""></span>
                     </button>
                     <ul class=""dropdown-menu data-list-options impl-selector-options"" data-optionsid=""{id}"" aria-labelledby=""{id}"">";
-                        foreach (var impl in impls)
-                        {
-                            var targetPanelId = $"{id}_{impl.Name}";
-                            output += $@"
-                        <li><a class=""option"" data-optiontext=""{impl.Name}"" data-optionvalue=""{impl.FullName}"" data-target-panel-id=""{targetPanelId}"">{impl.Name}</a></li>";
-                        }
-            
-                        output += $@"
+			foreach (var impl in impls)
+			{
+				var targetPanelId = $"{id}_{impl.Name}";
+				output += $@"
+                        <li><a class=""option"" data-optiontext=""{impl.GetDisplayName()}"" data-optionvalue=""{impl.FullName}"" data-target-panel-id=""{targetPanelId}"">{impl.GetDisplayName()}</a></li>";
+			}
+
+			output += $@"
                     </ul>
                 </div>
                 {(!string.IsNullOrWhiteSpace(descriptionText) ? $@"
@@ -287,8 +287,8 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
             " : "")}
             </div>";
 
-            return output;
-        }
+			return output;
+		}
 
 		protected string InputNested(string parentId, Type parentType)
 		{
@@ -303,7 +303,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 				var propLabelText = propDisplayInfo?.Label ?? propertyInfo.Name;
 				var propPlaceholderText = propDisplayInfo?.Placeholder ?? propertyInfo.Name;
 
-								if(propertyInfo.PropertyType.IsInterface)
+				if (propertyInfo.PropertyType.IsInterface)
 				{
 					if (!VT.Implementations.ContainsKey(propertyInfo.PropertyType)) { input += $"<span>No concrete implementation of \"{propertyInfo.PropertyType}\" found in the current assembly.</span>"; continue; }
 
@@ -331,7 +331,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 							string dNone = defaultValue != null && impl.Name == defaultValue ? "" : "d-none";
 
 							if (!NestedTypes.Add(impl)) { input += null; continue; } //Circular reference, not allowed -> null
-							input += $"<div id=\"{propId}_{impl.Name}\" class=\"panel panel-default impl-panels-for-{propId} {dNone}\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{propId}_{impl.Name}\" aria-expanded=\"false\" 	aria-controls=\"collapse_{propId}_{impl.Name}\"><h4 class=\"panel-title\">{impl.Name} {propertyInfo.Name}</h4></div><div id=\"collapse_{propId}_{impl.Name}\" 	class=\"panel-collapse collapse\"><div 	class=\"panel-body\">";
+							input += $"<div id=\"{propId}_{impl.Name}\" class=\"panel panel-default impl-panels-for-{propId} {dNone}\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{propId}_{impl.Name}\" aria-expanded=\"false\" 	aria-controls=\"collapse_{propId}_{impl.Name}\"><h4 class=\"panel-title\">{propDisplayInfo.Label} -> {impl.GetDisplayName()}</h4></div><div id=\"collapse_{propId}_{impl.Name}\" 	class=\"panel-collapse collapse\"><div 	class=\"panel-body\">";
 							input += InputNested($"{propId}_{impl.Name}", impl);
 							NestedTypes.Remove(impl);
 						}
@@ -368,7 +368,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages.Partials
 				}
 				else if (propertyInfo.PropertyType.IsClass)
 				{
-					if (!NestedTypes.Add(propertyInfo.PropertyType)) { input += null;  continue; } //Circular reference, not allowed -> null
+					if (!NestedTypes.Add(propertyInfo.PropertyType)) { input += null; continue; } //Circular reference, not allowed -> null
 					input += $"<div class=\"panel panel-default\"><div class=\"panel-heading\" role=\"button\" data-toggle=\"collapse\" href=\"#collapse_{propId}\" aria-expanded=\"false\" aria-controls=\"collapse_{propId}\"><h4 class=\"panel-title\">{propLabelText}</h4></div><div id=\"collapse_{propId}\" class=\"panel-collapse collapse\"><div class=\"panel-body\">";
 					input += InputNested(propId, propertyInfo.PropertyType);
 					NestedTypes.Remove(propertyInfo.PropertyType);

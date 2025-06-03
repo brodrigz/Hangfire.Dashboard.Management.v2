@@ -2,7 +2,7 @@
 
 namespace Hangfire.Dashboard.Management.v2.Metadata
 {
-	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property)]
+	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.Class)]
 	public sealed class DisplayDataAttribute : Attribute
 	{
 		/// <summary>

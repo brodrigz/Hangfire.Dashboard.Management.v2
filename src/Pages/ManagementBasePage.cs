@@ -84,6 +84,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 
 						variable = variable.Trim('_');
 						var formInput = GetFormVariable(variable);
+						if (formInput == null) continue;
 
 						object item = null;
 
@@ -91,11 +92,14 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 						{
 							if (!VT.Implementations.ContainsKey(parameterInfo.ParameterType)) { errorMessage = $"{displayInfo.Label ?? parameterInfo.Name} is not a valid interface type or is not registered in VT."; break; }
 							VT.Implementations.TryGetValue(parameterInfo.ParameterType, out HashSet<Type> impls);
-							var impl = impls.FirstOrDefault(concrete => concrete.FullName == GetFormVariable($"{id}_{parameterInfo.Name}"));
+
+							string implName = GetFormVariable($"{id}_{parameterInfo.Name}");
+							var impl = impls.FirstOrDefault(concrete => concrete.FullName == implName);
 
 							if (impl == null)
 							{
-								errorMessage = $"{impl.FullName} is not a valid concrete type of {parameterInfo.ParameterType} or is not registered in VT.";
+								errorMessage = $"No valid concrete type of {parameterInfo.ParameterType} registered in VT.";
+								//errorMessage = $"{impl.FullName} is not a valid concrete type of {parameterInfo.ParameterType} or is not registered in VT.";
 								break;
 							}
 
@@ -313,6 +317,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 				}
 
 				var formInput = GetFormVariable(propId);
+				if (formInput == null) continue;
 
 				if (propertyInfo.PropertyType.IsInterface)
 				{
@@ -320,8 +325,10 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 					VT.Implementations.TryGetValue(propertyInfo.PropertyType, out HashSet<Type> impls);
 					var filteredImpls = new HashSet<Type>(impls.Where(impl => !nestedTypes.Contains(impl)));
 
-					var choosedImpl = impls.FirstOrDefault(concrete => concrete.FullName == GetFormVariable($"{propId}"));
-					
+
+					var test = GetFormVariable($"{propId}");
+					var choosedImpl = impls.FirstOrDefault(concrete => concrete.FullName == test);
+
 					if (choosedImpl == null)
 					{
 						errorMessage = $"cannot find a valid concrete type of {propertyInfo.PropertyType} or is not registered in VT.";
@@ -331,7 +338,7 @@ namespace Hangfire.Dashboard.Management.v2.Pages
 					nestedTypes.Add(choosedImpl);
 					var nestedInstance = ProcessNestedParameters($"{propId}_{choosedImpl.Name}", choosedImpl, GetFormVariable, nestedTypes, out errorMessage);
 					nestedTypes.Remove(choosedImpl);
-						
+
 					propertyInfo.SetValue(instance, nestedInstance);
 				}
 				else if (propertyInfo.PropertyType == typeof(string))
